@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .received {
+            background-color: #e3f2fd;
+        }
+        .sent {
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <h2>WebSocket Test</h2>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+
+    <script>
+        let socket;
+        const messagesDiv = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+
+        function connect() {
+            socket = io('http://localhost:4000', {
+                transports: ['websocket', 'polling'],
+                withCredentials: true,
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000
+            });
+            
+            socket.on('connect', () => {
+                console.log('Connected to server');
+                addMessage('Connected to WebSocket server', 'received');
+            });
+            
+            socket.on('message', (message) => {
+                console.log('Message received:', message);
+                addMessage('Received: ' + message, 'received');
+            });
+            
+            socket.on('disconnect', (reason) => {
+                console.log('Disconnected:', reason);
+                addMessage('Disconnected from WebSocket server: ' + reason, 'received');
+            });
+            
+            socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                addMessage('Error: ' + error.message, 'received');
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+            }
+        }
+
+        function sendMessage() {
+            if (socket && socket.connected) {
+                const message = messageInput.value;
+                socket.emit('message', message);
+                addMessage('Sent: ' + message, 'sent');
+                messageInput.value = '';
+            } else {
+                addMessage('Not connected to WebSocket server', 'received');
+            }
+        }
+
+        function addMessage(message, type) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${type}`;
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Allow sending message with Enter key
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html> 
